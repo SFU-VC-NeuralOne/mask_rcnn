@@ -167,6 +167,7 @@ class CocoDataset(utils.Dataset):
         # print("Image paths:"); print(imgDir); print(imgZipFile); print(imgURL)
 
         # Create main folder if it doesn't exist yet
+        print(dataDir)
         if not os.path.exists(dataDir):
             os.makedirs(dataDir)
 
