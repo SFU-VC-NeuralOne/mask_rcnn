@@ -1,3 +1,4 @@
+import cv2
 import os
 import sys
 import random
@@ -8,7 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-def get_image_mask(input_image,frame_id):
+def get_image_mask():
     # Root directory of the project
     ROOT_DIR = os.path.abspath(".")
 
@@ -69,42 +70,58 @@ def get_image_mask(input_image,frame_id):
                    'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
                    'teddy bear', 'hair drier', 'toothbrush']
 
+    cap = cv2.VideoCapture('./hall_objects_qcif.y4m')
+    frame_list = []
+
+    img_dir = 'input/hallway'
+    i = 0
+    # loop through all the frames and store them in a list
+    while (i < 330):
+        # Capture frame-by-frame
+        i += 1
+        ret, frame = cap.read()
+        print(type(frame))
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        print(i)
+        frame_list.append(frame)
+        cv2.imshow('frame', frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if (i > 100):
+            image = frame
+
+            # Run detection
+            results = model.detect([image], verbose=1)
+
+            # Visualize results
+            r = results[0]
+
+            boxes = r['rois']
+            classes = r['class_ids']
+            n = boxes.shape[0]
+
+
+            mask = np.zeros((image.shape[0], image.shape[1]), dtype=np.float32)
+            for j in range(n):
+                if class_names[classes[j]] == 'person':
+                    y1, x1, y2, x2 = boxes[j]
+                    image[y1:y2, x1:x2, :] = 255
+                    mask[y1:y2, x1:x2] = 255
+
+
+            plt.imshow(image)
+            plt.show()
+            plt.imshow(mask)
+            plt.show()
+            plt.imsave('input/hallway_' + str(i) + '_input.png', image)
+            plt.imsave('input/hallway_' + str(i) + '_mask.png', mask , cmap=matplotlib.cm.gray, vmin=0, vmax=255)
+            # img_name = img_dir + str(i) + '.png'
+            # cv2.imwrite(img_name, frame)
+        cv2.waitKey(10)
 
     # Load a random image from the images folder
     print (os.walk(IMAGE_DIR))
     # file_names = next(os.walk(IMAGE_DIR))[2]
-    image = skimage.io.imread(os.path.join(IMAGE_DIR, input_image))
-
-    print(type(image))
-
-    # Run detection
-    results = model.detect([image], verbose=1)
-
-    # Visualize results
-    r = results[0]
-    print(r['rois'])
-    print(r['class_ids'])
-    print(class_names)
-    boxes = r['rois']
-    classes = r['class_ids']
-    n = boxes.shape[0]
-    print(n)
-
-    mask = np.zeros((image.shape[0],image.shape[1]), dtype=np.float32)
-    for i in range(n):
-        if class_names[classes[i]] == 'person':
-            y1, x1, y2, x2 = boxes[i]
-            print(boxes[i])
-            image[y1:y2,x1:x2,:] = 255
-            mask[y1:y2,x1:x2] = 255
-            print(mask[x1:x2, y1:y2])
 
 
-    plt.imshow(image)
-    plt.show()
-    plt.imshow(mask)
-    plt.show()
-    plt.imsave('hallway_' + str(frame_id) + '_input.png', image)
-    plt.imsave('hallway_' + str(frame_id) + '_mask.png', mask)
-
-get_image_mask('hallway167.png',167)
+get_image_mask()
