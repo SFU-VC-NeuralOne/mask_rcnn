@@ -31,7 +31,7 @@ import os
 import sys
 import time
 import numpy as np
-import imgaug  # https://github.com/aleju/imgaug (pip3 install imgaug)
+# import imgaug  # https://github.com/aleju/imgaug (pip3 install imgaug)
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -492,7 +492,7 @@ if __name__ == '__main__':
 
         # Image Augmentation
         # Right/Left flip 50% of the time
-        augmentation = imgaug.augmenters.Fliplr(0.5)
+        # augmentation = imgaug.augmenters.Fliplr(0.5)
 
         # *** This training schedule is an example. Update to your needs ***
 

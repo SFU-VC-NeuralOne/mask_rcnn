@@ -7,9 +7,11 @@ import numpy as np
 import skimage.io
 import matplotlib
 import matplotlib.pyplot as plt
+from mrcnn.model import MaskRCNN
+import mrcnn.config
+import mrcnn.utils
 
-
-def get_image_mask():
+def load_mask_model():
     # Root directory of the project
     ROOT_DIR = os.path.abspath(".")
 
@@ -23,8 +25,7 @@ def get_image_mask():
     # Import COCO config
     sys.path.append(os.path.join(ROOT_DIR, "samples/coco/"))  # To find local version
     # import coco
-    from samples.coco import coco
-
+    # from samples.coco import coco
 
     # Directory to save logs and trained model
     MODEL_DIR = os.path.join(ROOT_DIR, "logs")
@@ -38,21 +39,28 @@ def get_image_mask():
     # Directory of images to run detection on
     IMAGE_DIR = os.path.join(ROOT_DIR, "images")
 
-
-    class InferenceConfig(coco.CocoConfig):
-        # Set batch size to 1 since we'll be running inference on
-        # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-        GPU_COUNT = 1
+    class InferenceConfig(mrcnn.config.Config):
+        NAME = "coco_pretrained_model_config"
         IMAGES_PER_GPU = 1
+        GPU_COUNT = 1
+        NUM_CLASSES = 1 + 80  # COCO dataset has 80 classes + one background class
+        DETECTION_MIN_CONFIDENCE = 0.6
 
     config = InferenceConfig()
     config.display()
 
-     # Create model object in inference mode.
+    # Create model object in inference mode.
     model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
 
     # Load weights trained on MS-COCO
     model.load_weights(COCO_MODEL_PATH, by_name=True)
+
+    return model
+
+
+
+def get_image_mask(model, input_image , out_image_dir , frame_id):
+
 
     class_names = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
                    'bus', 'train', 'truck', 'boat', 'traffic light',
@@ -70,58 +78,35 @@ def get_image_mask():
                    'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
                    'teddy bear', 'hair drier', 'toothbrush']
 
-    cap = cv2.VideoCapture('./hall_objects_qcif.y4m')
-    frame_list = []
-
-    img_dir = 'input/hallway'
-    i = 0
-    # loop through all the frames and store them in a list
-    while (i < 330):
-        # Capture frame-by-frame
-        i += 1
-        ret, frame = cap.read()
-        print(type(frame))
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-        print(i)
-        frame_list.append(frame)
-        cv2.imshow('frame', frame)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        if (i > 100):
-            image = frame
-
-            # Run detection
-            results = model.detect([image], verbose=1)
-
-            # Visualize results
-            r = results[0]
-
-            boxes = r['rois']
-            classes = r['class_ids']
-            n = boxes.shape[0]
 
 
-            mask = np.zeros((image.shape[0], image.shape[1]), dtype=np.float32)
-            for j in range(n):
-                if class_names[classes[j]] == 'person':
-                    y1, x1, y2, x2 = boxes[j]
-                    image[y1:y2, x1:x2, :] = 255
-                    mask[y1:y2, x1:x2] = 255
+    img_dir = out_image_dir
+    image = input_image
+
+    # Run detection
+    results = model.detect([image], verbose=1)
+
+    # Visualize results
+    r = results[0]
+
+    boxes = r['rois']
+    classes = r['class_ids']
+    n = boxes.shape[0]
 
 
-            plt.imshow(image)
-            plt.show()
-            plt.imshow(mask)
-            plt.show()
-            plt.imsave('input/hallway_' + str(i) + '_input.png', image)
-            plt.imsave('input/hallway_' + str(i) + '_mask.png', mask , cmap=matplotlib.cm.gray, vmin=0, vmax=255)
-            # img_name = img_dir + str(i) + '.png'
-            # cv2.imwrite(img_name, frame)
-        cv2.waitKey(10)
-
-    # Load a random image from the images folder
-    print (os.walk(IMAGE_DIR))
-    # file_names = next(os.walk(IMAGE_DIR))[2]
+    mask = np.zeros((image.shape[0], image.shape[1]), dtype=np.float32)
+    for j in range(n):
+        if class_names[classes[j]] == 'person':
+            y1, x1, y2, x2 = boxes[j]
+            image[y1:y2, x1:x2, :] = 255
+            mask[y1:y2, x1:x2] = 255
 
 
-get_image_mask()
+    plt.imshow(image)
+    plt.show()
+    plt.imshow(mask)
+    plt.show()
+    plt.imsave(str(img_dir)+'_' + str(frame_id) + '_input.png', image)
+    plt.imsave(str(img_dir)+'_' + str(frame_id) + '_mask.png', mask , cmap=matplotlib.cm.gray, vmin=0, vmax=255)
+
+
